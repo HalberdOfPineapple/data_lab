@@ -201,11 +201,11 @@ int negate(int x) {
 int isAsciiDigit(int x) {
     int cond_1,cond_2,cond_3;
 
-    cond_1 = !(x >> 6);
-    cond_2 = !(x & 8);
+    cond_1 = !((x >> 3) ^ 6);
+    cond_2 = !((x >> 3) ^ 7);
     cond_3 = !(x & 6);
 
-    return cond_1 & (cond_2 | cond_3);
+    return cond_1 | (cond_2 & cond_3);
 }
 /* 
  * conditional - same as x ? y : z 
@@ -231,8 +231,9 @@ int isLessOrEqual(int x, int y) {
     int x_sign = (x >> 31) & 1;
     int y_sign = (y >> 31) & 1;
     int sign_diff = x_sign ^ y_sign;
+    int diff_sign = ((y + ~x + 1) >> 31) & 1;
 
-    return (sign_diff & x_sign) | (!sign_diff & (y + ~x + 1));
+    return (sign_diff & x_sign) | (!sign_diff & !diff_sign);
 }
 //4
 /* 
@@ -245,7 +246,7 @@ int isLessOrEqual(int x, int y) {
  */
 int logicalNeg(int x) {
     //TODO: take note of this
-    return ((~x + 1) | x) >> 31 + 1;
+    return (((~x + 1) | x) >> 31) + 1;
 }
 
 /* howManyBits - return the minimum number of bits required to represent x in
@@ -303,8 +304,8 @@ unsigned floatScale2(unsigned uf) {
     // Because in this case the result is large but reasonable, so return infinity but not NaN
     if (exp == 0xFF) return s | (exp << 23);
 
-    m = (uf << 1) & 0x7fffff;
-    return s | exp | m;
+    m = uf & 0x7fffff;
+    return s | (exp << 23) | m;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -320,7 +321,7 @@ unsigned floatScale2(unsigned uf) {
  */
 int floatFloat2Int(unsigned uf) {
     unsigned s = uf >> 31;
-    unsigned E = ((uf & 0x7f800000) >> 23) - 127;
+    int E = ((uf & 0x7f800000) >> 23) - 127;
     unsigned frac = 1 << 23 | (uf & 0x7fffff);
 
     if (E > 31) return 0x80000000u;
@@ -330,7 +331,7 @@ int floatFloat2Int(unsigned uf) {
     else frac = frac << (E - 23);
 
     if (!((frac >> 31) ^ s)) return frac;
-    //if signs are different and it becomes negative from positive, this indicates overflow happens.
+        //if signs are different and it becomes negative from positive, this indicates overflow happens.
     else if (frac >> 31) return 0x80000000u;
     else return ~frac + 1;
 }
